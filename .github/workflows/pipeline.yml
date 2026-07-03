@@ -1,0 +1,75 @@
+name: Curso DevOps - Pipeline S3
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: "us-east-1"
+  S3_NAME: "minicurso2026"
+  S3_PREFIX: "/"
+  AWS_WEB_IDENTITY_TOKEN_FILE: "/tmp/gitlab_token"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Repo
+        uses: actions/checkout@v4
+
+      - name: Prepara S.O para Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Ajuste path e Adiciona Files
+        run: |
+          pwd && ls -alh 
+          cd mini-curso-devops
+          cat << EOF >> vite.config.js
+          import { defineConfig } from 'vite'
+          // https://vitejs.dev/config/
+          export default defineConfig({
+          // Adicione esta linha:
+          base: './', 
+          } )
+          EOF
+          ls -alh
+
+      - name: Instalar dependencias e buildar
+        run: |
+          cd mini-curso-devops
+          pwd && ls -alh  
+          npm install
+          npm run build
+
+      - name: Fazer o Upload do codigo
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-files
+          path: mini-curso-devops/dist
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Download do Arquivos
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-files
+          path: dist
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Copia de arquivos para S3 e faz o SYNC
+        run: |
+          set -e 
+          aws s3 sync dist/ s3://$S3_NAME/ --delete --region $AWS_REGION
