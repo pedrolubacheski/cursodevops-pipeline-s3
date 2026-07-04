@@ -9,7 +9,6 @@ env:
   AWS_REGION: "us-east-1"
   S3_NAME: "minicurso2026"
   S3_PREFIX: "/"
-  AWS_WEB_IDENTITY_TOKEN_FILE: "/tmp/gitlab_token"
 
 jobs:
   build:
@@ -53,9 +52,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - name: Download do Arquivos
         uses: actions/download-artifact@v4
@@ -63,10 +59,12 @@ jobs:
           name: dist-files
           path: dist
 
-      - name: Configure AWS credentials (OIDC)
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Copia de arquivos para S3 e faz o SYNC
