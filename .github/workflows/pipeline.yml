@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: "us-east-1"
-  S3_NAME: "minicurso2026"
+  S3_NAME: "minicurso2026-pedro-luba"
   S3_PREFIX: "/"
 
 jobs:
